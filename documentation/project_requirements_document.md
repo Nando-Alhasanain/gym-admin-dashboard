@@ -1,117 +1,129 @@
-# Project Requirements Document: codeguide-starter
+# Project Requirements Document
 
----
+# Project Requirements Document
 
 ## 1. Project Overview
 
-The **codeguide-starter** project is a boilerplate web application that provides a ready-made foundation for any web project requiring secure user authentication and a post-login dashboard. It sets up the common building blocks—sign-up and sign-in pages, API routes to handle registration and login, and a simple dashboard interface driven by static data. By delivering this skeleton, it accelerates development time and ensures best practices are in place from day one.
+The Gym Admin Dashboard is a full-stack web application designed to serve as the central control panel for gym managers and staff. It solves the problem of fragmented gym operations—where memberships, attendance tracking, retail sales, and performance reporting live in separate spreadsheets or paper logs—by unifying all core administrative tasks under one secure, modern interface. This dashboard provides member management, QR-code–based check-in, point-of-sale (POS) transactions, and real-time analytics, so gym owners can focus on growing their business rather than juggling manual processes.
 
-This starter kit is being built to solve the friction developers face when setting up repeated common tasks: credential handling, session management, page routing, and theming. Key objectives include: 1) delivering a fully working authentication flow (registration & login), 2) providing a gated dashboard area upon successful login, 3) establishing a clear, maintainable project structure using Next.js and TypeScript, and 4) demonstrating a clean theming approach with global and section-specific CSS. Success is measured by having an end-to-end login journey in under 200 lines of code and zero runtime type errors.
+We are building this system to streamline day-to-day gym operations, reduce human error, and provide actionable insights into revenue and attendance trends. Key objectives are:
 
----
+- Delivering a secure, role-based access model for admins and staff.
+- Enabling quick member check-ins via QR codes or manual entry.
+- Supporting retail transactions with inventory management.
+- Offering a unified dashboard of charts and reports for data-driven decisions.
+- Ensuring performance, reliability, and ease of deployment on platforms like Vercel.
+
+Success is measured by staff adoption, accurate attendance and sales records, and a measurable reduction in administrative overhead.
 
 ## 2. In-Scope vs. Out-of-Scope
 
-### In-Scope (Version 1)
-- User registration (sign-up) form with validation
-- User login (sign-in) form with validation
-- Next.js API routes under `/api/auth/route.ts` handling:
-  - Credential validation
-  - Password hashing (e.g., bcrypt)
-  - Session creation or JWT issuance
-- Protected dashboard pages under `/dashboard`:
-  - `layout.tsx` wrapping dashboard content
-  - `page.tsx` rendering static data from `data.json`
-- Global application layout in `/app/layout.tsx`
-- Basic styling via `globals.css` and `dashboard/theme.css`
-- TypeScript strict mode enabled
+**In-Scope (Version 1):**
 
-### Out-of-Scope (Later Phases)
-- Integration with a real database (PostgreSQL, MongoDB, etc.)
-- Advanced authentication flows (password reset, email verification, MFA)
-- Role-based access control (RBAC)
-- Multi-tenant or white-label theming
-- Unit, integration, or end-to-end testing suites
-- CI/CD pipeline and production deployment scripts
+- User authentication (sign-up, sign-in, password security) via Better Auth.  
+- Role-based access control (Admin vs. Staff).  
+- Member CRUD (create, read, update, delete) with QR code generation.  
+- Attendance logging through QR-code scanning or manual ID input.  
+- POS module: product catalog, cart management, checkout, receipt generation.  
+- Dashboard reports: daily check-ins, revenue charts, membership trends.  
+- Responsive UI using Next.js, Tailwind CSS, shadcn/ui.  
+- PostgreSQL database with Drizzle ORM schemas for users, members, plans, products, logs, and transactions.  
+- Docker Compose for local development; deployment to Vercel.
 
----
+**Out-of-Scope (Future Phases):**
+
+- Mobile-native (React Native or SwiftUI) apps.  
+- Integration with external payment gateways (Stripe, PayPal).  
+- Automated email/SMS notifications for membership renewals.  
+- Advanced reporting (heatmaps, predictive analytics).  
+- Multi-location gym support.  
+- Third-party integrations (e.g., Fitbit, Google Calendar).
 
 ## 3. User Flow
 
-A new visitor lands on the root URL and sees a welcome page with options to **Sign Up** or **Sign In**. If they choose Sign Up, they fill in their email, password, and hit “Create Account.” The form submits to `/api/auth/route.ts`, which hashes the password, creates a new user session or token, and redirects them to the dashboard. If any input is invalid, an inline error message explains the issue (e.g., “Password too short”).
+A new staff member visits the application and lands on the sign-up page, where they submit their email, name, and password. Upon email verification, they sign in via the login page and are routed to the protected dashboard. The dashboard layout features a fixed sidebar with sections for Members, Attendance, POS, and Reports. Staff with the “admin” role see additional links for system settings and financial exports.
 
-Once authenticated, the user is taken to the `/dashboard` route. Here they see a sidebar or header defined by `dashboard/layout.tsx`, and the main panel pulls in static data from `data.json`. They can log out (if that control is present), but otherwise their entire session is managed by server-side cookies or tokens. Returning users go directly to Sign In, submit credentials, and upon success they land back on `/dashboard`. Any unauthorized access to `/dashboard` redirects back to Sign In.
-
----
+To check in a member, staff navigate to Attendance, open the QR-scanner component or enter a member ID manually, and submit. The system validates membership status, records the check-in, and displays a confirmation. For a retail sale, staff go to POS, search or browse products, add items to the cart, and finalize the transaction. Each step updates the PostgreSQL database and adjusts stock levels in real time. Reports automatically refresh to reflect the day’s activity.
 
 ## 4. Core Features
 
-- **Sign-Up Page (`/app/sign-up/page.tsx`)**: Form fields for email & password, client-side validation, POST to `/api/auth`.
-- **Sign-In Page (`/app/sign-in/page.tsx`)**: Form fields for email & password, client-side validation, POST to `/api/auth`.
-- **Authentication API (`/app/api/auth/route.ts`)**: Handles both registration and login based on HTTP method, integrates password hashing (bcrypt) and session or JWT logic.
-- **Global Layout (`/app/layout.tsx` + `globals.css`)**: Shared header, footer, and CSS resets across all pages.
-- **Dashboard Layout (`/app/dashboard/layout.tsx` + `dashboard/theme.css`)**: Sidebar or top nav for authenticated flows, section-specific styling.
-- **Dashboard Page (`/app/dashboard/page.tsx`)**: Reads `data.json`, renders it as cards or tables.
-- **Static Data Source (`/app/dashboard/data.json`)**: Example dataset to demo dynamic rendering.
-- **TypeScript Configuration**: `tsconfig.json` with strict mode and path aliases (if any).
+- **Authentication & RBAC**  
+  Secure sign-up, login, password hashing, and email verification. Role-based middleware ensures only authorized users can access specific routes.
 
----
+- **Member Management**  
+  Full CRUD for member profiles. Automatic QR code generation (`qrcode.react`). Fields include name, contact info, plan assignment.
+
+- **Attendance Tracking**  
+  QR code scanning via `react-qr-reader` or manual ID entry. Backend endpoint verifies active plans, writes to `check_in_logs`, and returns status messages.
+
+- **Point-of-Sale (POS)**  
+  Product catalog display, cart interface, checkout logic. On success, updates `transactions` and decrements inventory. Generates printable receipt.
+
+- **Dashboard & Reports**  
+  Real-time charts (using Tremor or Recharts) for key metrics: daily check-ins, membership counts, revenue by day/week, popular products.
+
+- **UI/UX & Theming**  
+  Responsive design with Next.js app router, shadcn/ui components, Tailwind CSS, and dark mode support via `next-themes`.
+
+- **Database & API**  
+  PostgreSQL accessed through Drizzle ORM. Next.js API routes for all CRUD and business logic (e.g., `/api/members`, `/api/check-in`, `/api/pos`).
+
+- **Containerization & Deployment**  
+  Docker Compose for local dev. Optimized build for Vercel hosting with environment variable management.
+
+- **Validation & Error Handling**  
+  `zod` schemas for request bodies. Standardized error responses with clear messages for UI feedback.
 
 ## 5. Tech Stack & Tools
 
-- **Framework**: Next.js (App Router) for file-based routing, SSR/SSG, and API routes.
-- **Language**: TypeScript for type safety.
-- **UI Library**: React 18 for component-based UI.
-- **Styling**: Plain CSS via `globals.css` (global reset) and `theme.css` (sectional styling). Can easily migrate to CSS Modules or Tailwind in the future.
-- **Backend**: Node.js runtime provided by Next.js API routes.
-- **Password Hashing**: bcrypt (npm package).
-- **Session/JWT**: NextAuth.js or custom JWT logic (to be decided in implementation).
-- **IDE & Dev Tools**: VS Code with ESLint, Prettier extensions. Optionally, Cursor.ai for AI-assisted coding.
-
----
+- Frontend: Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui, `next-themes`, Lucide React icons.  
+- Backend: Next.js API routes, TypeScript.  
+- Database: PostgreSQL, Drizzle ORM for type-safe schema definitions and queries.  
+- Authentication: Better Auth for secure user flows.  
+- QR Code: `qrcode.react` (generation), `react-qr-reader` (scanning).  
+- Charts: Tremor or Recharts for data visualization.  
+- Validation: `zod` + `react-hook-form`.  
+- Containerization: Docker, Docker Compose.  
+- Deployment: Vercel.  
+- Testing: Jest for unit tests, Playwright or Cypress for end-to-end.  
+- Monitoring: Sentry for error tracking.
 
 ## 6. Non-Functional Requirements
 
-- **Performance**: Initial page load under 200 ms on a standard broadband connection. API responses under 300 ms.
-- **Security**:
-  - HTTPS only in production.
-  - Proper CORS, CSRF protection for API routes.
-  - Secure password storage (bcrypt with salt).
-  - No credentials or secrets checked into version control.
-- **Scalability**: Structure must support adding database integration, caching layers, and advanced auth flows without rewiring core app.
-- **Usability**: Forms should give real-time feedback on invalid input. Layout must be responsive (mobile > 320 px).
-- **Maintainability**: Code must adhere to TypeScript strict mode. Linting & formatting enforced by ESLint/Prettier.
-
----
+- **Performance:** Dashboard load time under 2 seconds on a 4G connection. API responses under 300 ms for standard queries.  
+- **Security:** HTTPS in all environments, OWASP Top 10 mitigation, secure JWT or session tokens, rate limiting on auth and check-in endpoints.  
+- **Scalability:** Support at least 1,000 concurrent users. Database connection pooling configured.  
+- **Reliability:** 99.9% uptime SLA on production. Automated backups of PostgreSQL daily.  
+- **Usability:** WCAG 2.1 AA compliance for accessibility. Responsive design for desktop and tablet use.  
+- **Maintainability:** 80% code coverage in unit tests, CI/CD pipelines with linting and type checks.
 
 ## 7. Constraints & Assumptions
 
-- **No Database**: Dashboard uses only `data.json`; real database integration is deferred.
-- **Node Version**: Requires Node.js >= 14.
-- **Next.js Version**: Built on Next.js 13+ App Router.
-- **Authentication**: Assumes availability of bcrypt or NextAuth.js at implementation time.
-- **Hosting**: Targets serverless or Node.js-capable hosting (e.g., Vercel, Netlify).
-- **Browser Support**: Modern evergreen browsers; no IE11 support required.
-
----
+- PostgreSQL is available and reachable in all environments.  
+- Better Auth service credentials and environment variables are configured before running.  
+- Vercel is the primary deployment target; some server-only Node.js features must align with Vercel’s serverless model.  
+- Staff devices (tablets or laptops) have cameras for QR scanning or fallback manual entry.  
+- No external payment gateway integration for V1—uses in-house transactions only.
 
 ## 8. Known Issues & Potential Pitfalls
 
-- **Static Data Limitation**: `data.json` is only for demo. A real API or database will be needed to avoid stale data.
-  *Mitigation*: Define a clear interface for data fetching so swapping to a live endpoint is trivial.
-
-- **Global CSS Conflicts**: Using global styles can lead to unintended overrides.
-  *Mitigation*: Plan to migrate to CSS Modules or utility-first CSS in Phase 2.
-
-- **API Route Ambiguity**: Single `/api/auth/route.ts` handling both sign-up and sign-in could get complex.
-  *Mitigation*: Clearly branch on HTTP method (`POST /register` vs. `POST /login`) or split into separate files.
-
-- **Lack of Testing**: No test suite means regressions can slip in.
-  *Mitigation*: Build a minimal Jest + React Testing Library setup in an early iteration.
-
-- **Error Handling Gaps**: Client and server must handle edge cases (network failures, malformed input).
-  *Mitigation*: Define a standard error response schema and show user-friendly messages.
+- **QR Scanner Variability:** Camera API support differs by browser/device. Provide manual input fallback.  
+- **Database Migrations:** Drizzle ORM migrations must run in CI/CD. Missing migrations can break production.  
+- **API Rate Limiting:** Unprotected endpoints could be abused. Implement middleware to throttle repeated requests.  
+- **Data Consistency:** Race conditions in POS checkout might oversell products. Use database transactions to lock stock rows.  
+- **Serverless Cold Starts:** Vercel functions may have latency spikes. Cache static data where possible (e.g., product catalog).  
+- **Validation Gaps:** Incomplete Zod schemas may allow invalid data. Keep validation and business logic in sync.
 
 ---
 
-This PRD should serve as the single source of truth for the AI model or any developer generating the next set of technical documents: Tech Stack Doc, Frontend Guidelines, Backend Structure, App Flow, File Structure, and IDE Rules. It contains all functional and non-functional requirements with no ambiguity, enabling seamless downstream development.
+This PRD captures the full scope of the Gym Admin Dashboard project, providing clear guidance for every component, flow, and requirement. Subsequent technical documents—Tech Stack details, Frontend Guidelines, Backend Structures, App Flow diagrams, and file organization—can directly build on this reference without ambiguity.
+
+---
+**Document Details**
+- **Project ID**: 75f83eed-0d53-4247-ae65-f3e963001172
+- **Document ID**: cb2a41ee-3825-461d-9fb0-fccc5568c316
+- **Type**: custom
+- **Custom Type**: project_requirements_document
+- **Status**: completed
+- **Generated On**: 2025-10-25T13:41:19.848Z
+- **Last Updated**: N/A

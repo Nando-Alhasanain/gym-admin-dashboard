@@ -1,116 +1,169 @@
-# Security Guidelines for codeguide-starter
+# Security Guideline Document
 
-This document defines mandatory security principles and implementation best practices tailored to the **codeguide-starter** repository. It aligns with Security-by-Design, Least Privilege, Defense-in-Depth, and other core security tenets. All sections reference specific areas of the codebase (e.g., `/app/api/auth/route.ts`, CSS files, environment configuration) to ensure practical guidance.
+# Security Guidelines for Gym Admin Dashboard
+
+This document outlines essential security principles and best practices tailored to the "Gym Admin Dashboard" repository. It integrates robust security controls across authentication, input handling, data protection, APIs, web hygiene, infrastructure, and dependencies to ensure a resilient gym management system.
 
 ---
 
 ## 1. Security by Design
 
-• Embed security from day one: review threat models whenever adding new features (e.g., new API routes, data fetching).
-• Apply “secure defaults” in Next.js configuration (`next.config.js`), enabling strict mode and disabling debug flags in production builds.
-• Maintain a security checklist in your PR template to confirm that each change has been reviewed against this guideline.
-
----
+- Embed security from day one: review architecture and threat models before adding features.  
+- Enforce **Secure Defaults**: all endpoints require authentication unless explicitly stated public.  
+- Apply **Defense in Depth**: use multiple controls (authentication, RBAC, validation) so no single point of failure.
 
 ## 2. Authentication & Access Control
 
-### 2.1 Password Storage
-- Use **bcrypt** (or Argon2) with a per-user salt to hash passwords in `/app/api/auth/route.ts`.
-- Enforce a strong password policy on both client and server: minimum 12 characters, mixed case, numbers, and symbols.
+- **Strong Authentication**  
+  • Use Better Auth with secure password policies (min. 12 characters, complexity rules).  
+  • Store passwords hashed with Argon2 or bcrypt and unique salts.  
+  • Enforce account lockouts & rate limiting on sign-in endpoints to thwart brute-force attacks.
 
-### 2.2 Session Management
-- Issue sessions via Secure, HttpOnly, SameSite=strict cookies. Do **not** expose tokens to JavaScript.
-- Implement absolute and idle timeouts. For example, invalidate sessions after 30 minutes of inactivity.
-- Protect against session fixation by regenerating session IDs after authentication.
+- **Session & Token Security**  
+  • If using JWT, select strong algorithms (e.g., RS256), validate `exp` and `aud`, and rotate keys periodically.  
+  • Set HTTP-only, Secure, SameSite=Lax cookie flags.
 
-### 2.3 Brute-Force & Rate Limiting
-- Apply rate limiting at the API layer (e.g., using `express-rate-limit` or Next.js middleware) on `/api/auth` to throttle repeated login attempts.
-- Introduce exponential backoff or temporary lockout after N failed attempts.
+- **Role-Based Access Control (RBAC)**  
+  • Extend user schema with roles (`admin`, `staff`).  
+  • Implement server-side middleware to check roles on every protected route under `app/dashboard/*`:
+    - Only `admin` can access financial reports and system settings.  
+    - `staff` can perform check-ins and POS operations.
 
-### 2.4 Role-Based Access Control (Future)
-- Define user roles in your database model (e.g., `role = 'user' | 'admin'`).
-- Enforce server-side authorization checks in every protected route (e.g., in `dashboard/layout.tsx` loader functions).
+- **Multi-Factor Authentication**  
+  • Offer TOTP (e.g., Google Authenticator) for admin users to protect sensitive actions.
 
----
+## 3. Input Handling & Validation
 
-## 3. Input Handling & Processing
+- **Server-Side Validation**  
+  • Use **Zod** for schema-based validation on all API routes (members, plans, products, transactions).  
+  • Validate types, ranges (e.g., price > 0, stock ≥ 0), string lengths, and formats (e.g., email, phone).
 
-### 3.1 Validate & Sanitize All Inputs
-- On **client** (`sign-up/page.tsx`, `sign-in/page.tsx`): perform basic format checks (email regex, password length).
-- On **server** (`/app/api/auth/route.ts`): re-validate inputs with a schema validator (e.g., `zod`, `Joi`).
-- Reject or sanitize any unexpected fields to prevent injection attacks.
+- **Prevent Injection**  
+  • Use Drizzle ORM’s parameterized queries; never interpolate raw values into SQL.  
+  • Sanitize and escape any HTML or rich-text input to avoid template injection.
 
-### 3.2 Prevent Injection
-- If you introduce a database later, always use parameterized queries or an ORM (e.g., Prisma) rather than string concatenation.
-- Avoid dynamic `eval()` or template rendering with unsanitized user input.
+- **File Uploads & QR Codes**  
+  • If supporting image uploads, validate MIME types, file size, and scan for malware.  
+  • Store files outside web root or in secure cloud storage with restricted access.
 
-### 3.3 Safe Redirects
-- When redirecting after login or logout, validate the target against an allow-list to prevent open redirects.
-
----
+- **Redirect Validation**  
+  • If implementing redirects after sign-in/sign-out, validate redirect URLs against an allow-list of trusted paths.
 
 ## 4. Data Protection & Privacy
 
-### 4.1 Encryption & Secrets
-- Enforce HTTPS/TLS 1.2+ for all front-end ↔ back-end communications.
-- Never commit secrets—use environment variables and a secrets manager (e.g., AWS Secrets Manager, Vault).
+- **Encryption In Transit & At Rest**  
+  • Enforce HTTPS (TLS 1.2+) for all traffic (Next.js and API).  
+  • Enable database encryption at rest (PostgreSQL Transparent Data Encryption if available).
 
-### 4.2 Sensitive Data Handling
-- Do ​not​ log raw passwords, tokens, or PII in server logs. Mask or redact any user identifiers.
-- If storing PII in `data.json` or a future database, classify it and apply data retention policies.
+- **Secrets Management**  
+  • Store API keys, database credentials, JWT private keys in a secrets manager (e.g., AWS Secrets Manager, Vault).  
+  • Avoid committing secrets or `.env` files to version control.
 
----
+- **PII Handling**  
+  • Mask or redact sensitive fields (e.g., member contact info) in logs and API responses.  
+  • Implement data retention and deletion policies for PII to comply with GDPR/CCPA if applicable.
+
+- **Secure Database Access**  
+  • Create distinct database users with least privilege: one user for web read/write operations, another read-only for reporting.  
+  • Use SSL/TLS connections between application and database.
 
 ## 5. API & Service Security
 
-### 5.1 HTTPS Enforcement
-- In production, redirect all HTTP traffic to HTTPS (e.g., via Vercel’s redirect rules or custom middleware).
+- **Endpoint Protection**  
+  • Secure all `app/api/*` routes with authentication and role checks.  
+  • Use correct HTTP methods: GET (read), POST (create), PUT/PATCH (update), DELETE (delete).
 
-### 5.2 CORS
-- Configure `next.config.js` or API middleware to allow **only** your front-end origin (e.g., `https://your-domain.com`).
+- **Rate Limiting & Throttling**  
+  • Implement rate limiting (e.g., 100 requests/minute per IP) on sensitive endpoints (`/api/auth`, `/api/check-in`).
 
-### 5.3 API Versioning & Minimal Exposure
-- Version your API routes (e.g., `/api/v1/auth`) to handle future changes without breaking clients.
-- Return only necessary fields in JSON responses; avoid leaking internal server paths or stack traces.
+- **CORS & CSRF**  
+  • Configure CORS to only allow origins you control (e.g., `https://yourdomain.com`).  
+  • Use Next.js built-in CSRF protection or a synchronizer token to protect state-changing requests.
 
----
+- **Minimize Data Exposure**  
+  • Only return necessary fields in API responses (e.g., avoid returning full user objects where only `id` and `role` are needed).
 
 ## 6. Web Application Security Hygiene
 
-### 6.1 CSRF Protection
-- Use anti-CSRF tokens for any state-changing API calls. Integrate Next.js CSRF middleware or implement synchronizer tokens stored in cookies.
+- **Security Headers**  
+  • `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`  
+  • `X-Content-Type-Options: nosniff`  
+  • `X-Frame-Options: DENY` or `Content-Security-Policy: frame-ancestors 'none'`  
+  • `Referrer-Policy: no-referrer-when-downgrade`
 
-### 6.2 Security Headers
-- In `next.config.js` (or a custom server), add these headers:
-  - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
-  - `X-Content-Type-Options: nosniff`
-  - `X-Frame-Options: DENY`
-  - `Referrer-Policy: no-referrer-when-downgrade`
-  - `Content-Security-Policy`: restrict script/style/src to self and trusted CDNs.
+- **Content Security Policy (CSP)**  
+  • Restrict scripts/styles to your own domains and trusted CDNs.  
+  • Enable `script-src 'self' 'nonce-<random>'` for inline scripts if needed.
 
-### 6.3 Secure Cookies
-- Set `Secure`, `HttpOnly`, `SameSite=Strict` on all cookies. Avoid storing sensitive data in `localStorage`.
+- **Cookie Security**  
+  • Ensure session cookies have `Secure; HttpOnly; SameSite=Lax` flags.
 
-### 6.4 Prevent XSS
-- Escape or encode all user-supplied data in React templates. Avoid `dangerouslySetInnerHTML` unless content is sanitized.
+- **Disable Client-Side Sensitive Storage**  
+  • Avoid storing PII, JWTs, or secrets in `localStorage` or `sessionStorage`.
 
----
+- **Subresource Integrity (SRI)**  
+  • Add `integrity` and `crossorigin` attributes to `<script>` and `<link>` tags for third-party resources.
 
 ## 7. Infrastructure & Configuration Management
 
-- Harden your hosting environment (e.g., Vercel/Netlify) by disabling unnecessary endpoints (GraphQL/GraphiQL playgrounds in production).
-- Rotate secrets and API keys regularly via your secrets manager.
-- Maintain minimal privileges: e.g., database accounts should only have read/write on required tables.
-- Keep Node.js, Next.js, and all system packages up to date.
+- **Environment Hardening**  
+  • Disable debug/verbose logging in production (`NEXT_PUBLIC_ENV=production`).  
+  • Remove or protect default admin accounts and credentials.
 
----
+- **Network Controls**  
+  • Expose only necessary ports (e.g., 443 for HTTPS).  
+  • Use a Web Application Firewall (WAF) to block malicious traffic patterns.
+
+- **TLS/SSL Configuration**  
+  • Enforce TLS 1.2+ and strong cipher suites.  
+  • Redirect all HTTP traffic to HTTPS.
+
+- **Container Security**  
+  • Use minimal base images (e.g., `node:18-alpine`).  
+  • Run containers as non-root users.  
+  • Scanning images for vulnerabilities (e.g., with Trivy) before deployment.
+
+- **Automated Patching**  
+  • Schedule regular updates of OS packages, Node.js, and package dependencies.
 
 ## 8. Dependency Management
 
-- Commit and maintain `package-lock.json` to guarantee reproducible builds.
-- Integrate a vulnerability scanner (e.g., GitHub Dependabot, Snyk) to monitor and alert on CVEs in dependencies.
-- Trim unused packages; each added library increases the attack surface.
+- **Vet & Lock Dependencies**  
+  • Use `package-lock.json` to lock versions.  
+  • Only install essential packages (e.g., Next.js, Drizzle, Zod, React-Hook-Form).
+
+- **Vulnerability Scanning**  
+  • Integrate SCA tools (e.g., GitHub Dependabot, Snyk) to detect and remediate CVEs in dependencies.
+
+- **Library Selection**  
+  • Choose well-maintained, widely adopted libraries (e.g., `zod`, `react-qr-reader`).  
+  • Keep third-party UI components (shadcn/ui) up-to-date.
+
+## 9. Testing, Monitoring & Incident Response
+
+- **Automated Testing**  
+  • Unit tests for business logic (e.g., membership validation, transaction processing).  
+  • Integration tests for API routes using a test database.  
+  • E2E tests with Cypress or Playwright simulating check-ins, sales, and RBAC enforcement.
+
+- **Logging & Monitoring**  
+  • Capture errors and performance metrics with Sentry or Datadog.  
+  • Log security events (failed logins, access denials) to a centralized SIEM.
+
+- **Incident Response Plan**  
+  • Define procedures for detecting, containing, and recovering from breaches.  
+  • Conduct regular security drills and reviews.
+
+## 10. Conclusion
+
+Adherence to these guidelines will ensure the Gym Admin Dashboard is secure, reliable, and compliant with best practices. Security is an ongoing effort—continuously review, test, and enhance controls as the application evolves.
 
 ---
-
-Adherence to these guidelines will ensure that **codeguide-starter** remains secure, maintainable, and resilient as it evolves. Regularly review and update this document to reflect new threats and best practices.
+**Document Details**
+- **Project ID**: 75f83eed-0d53-4247-ae65-f3e963001172
+- **Document ID**: bec084ed-e95f-4b0d-8381-e10b16083d94
+- **Type**: custom
+- **Custom Type**: security_guideline_document
+- **Status**: completed
+- **Generated On**: 2025-10-25T13:42:41.762Z
+- **Last Updated**: N/A

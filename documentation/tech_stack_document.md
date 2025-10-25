@@ -1,90 +1,150 @@
 # Tech Stack Document
 
-This document explains the key technologies chosen for the **codeguide-starter** project. It’s written in everyday language so anyone—technical or not—can understand why each tool was picked and how it supports the application.
+# Tech Stack Document for Gym Admin Dashboard
+
+This document explains the technology choices behind the Gym Admin Dashboard in everyday language. It describes how each tool or library helps build a reliable, user-friendly gym management system.
 
 ## 1. Frontend Technologies
-The frontend is everything the user sees and interacts with. For this project, we’ve used:
+
+These are the tools we use to build everything you see and interact with in your browser:
 
 - **Next.js (App Router)**
-  - A React framework that makes page routing, server-side rendering, and API routes very simple.
-  - Enhances user experience by pre-rendering pages on the server or at build time, leading to faster initial load.
-- **React 18**
-  - The underlying library for building user interfaces with reusable components.
-  - Provides a smooth, interactive experience thanks to its virtual DOM and modern hooks.
-- **TypeScript**
-  - A superset of JavaScript that adds types (labels for data).
-  - Helps catch errors early during development and makes the code easier to maintain.
-- **CSS (globals.css & theme.css)**
-  - **globals.css** applies base styles (fonts, colors, resets) across the entire app.
-  - **dashboard/theme.css** defines the look and feel specific to the dashboard area.
-  - This separation keeps styles organized and avoids accidental style conflicts.
+  • Provides the page structure and routing for the dashboard.  
+  • Lets us mix server-side and client-side code for faster load times and real-time updates.
 
-By combining these tools, we have a clear structure (Next.js folders for pages and layouts), safer code (TypeScript), and flexible styling with vanilla CSS.
+- **TypeScript**
+  • Adds simple type checking to JavaScript.  
+  • Helps catch mistakes early, especially when working with sensitive data like membership details or payments.
+
+- **shadcn/ui**
+  • A collection of ready-to-customize components (buttons, tables, forms, cards).  
+  • Speeds up building a consistent, professional-looking interface.
+
+- **Tailwind CSS v4**
+  • A utility-first styling toolkit that makes it quick to design and adjust layouts.  
+  • Supports dark mode and responsive design out of the box.
+
+- **next-themes**
+  • Manages light and dark mode switching automatically.  
+  • Improves readability for staff working at different times of day.
+
+- **Lucide React**
+  • A modern icon set for buttons, menus, and status indicators.  
+  • Keeps the interface visually clear and consistent.
+
+- **Charting Library (Recharts or Tremor)**
+  • Renders interactive graphs and charts on the main dashboard.  
+  • Makes it easy to spot trends in attendance, revenue, and membership activity.
+
+- **QR Code Libraries**
+  • `qrcode.react` to generate unique codes for each member.  
+  • `react-qr-reader` (or similar) to scan codes at check-in.  
+  • Streamlines attendance tracking with a simple scan or manual entry.
+
+- **Form Handling & Validation**
+  • `react-hook-form` to manage form state and performance.  
+  • `zod` for clear, consistent input validation rules (e.g., ensuring prices are positive numbers).
 
 ## 2. Backend Technologies
-The backend handles data, user accounts, and the logic behind the scenes. Our choices here are:
+
+These components power the data processing, storage, and server-side logic:
+
+- **Better Auth**
+  • Handles secure sign-up, sign-in, and password flows.  
+  • Provides a foundation for staff and admin user roles with role-based access control.
 
 - **Next.js API Routes**
-  - Allows us to write server-side code (`route.ts` files) alongside our frontend in the same project.
-  - Runs on Node.js, so we can handle requests like sign-up, sign-in, and data fetching in one place.
-- **Node.js Runtime**
-  - The JavaScript environment on the server that executes our API routes.
-- **bcrypt** (npm package)
-  - A library for hashing passwords securely before storing them.
-  - Ensures that even if someone got access to our data, raw passwords aren’t visible.
-- **(Optional) NextAuth.js or JWT**
-  - While this starter kit shows a custom authentication flow, it can easily integrate services like NextAuth.js for email-based login or JWT (JSON Web Tokens) for stateless sessions.
+  • Built-in endpoints for creating custom server logic (membership CRUD, check-in, POS transactions).  
+  • Keeps frontend and backend code together for easier maintenance.
 
-These components work together to receive user credentials, verify or store them securely, manage sessions or tokens, and deliver protected data back to the frontend.
+- **PostgreSQL**
+  • A reliable, relational database for structured data (members, plans, products, logs, transactions).  
+  • Well-suited for complex queries and joins (e.g., checking membership status).
+
+- **Drizzle ORM**
+  • A type-safe layer on top of PostgreSQL.  
+  • Ensures data integrity by catching errors in queries before they reach the database.
 
 ## 3. Infrastructure and Deployment
-Infrastructure covers where and how we host the app, as well as how changes get delivered:
 
-- **Git & GitHub**
-  - Version control system (Git) and remote hosting (GitHub) keep track of all code changes and allow team collaboration.
-- **Vercel (or Netlify)**
-  - A popular hosting service optimized for Next.js, with one-click deployments and global content delivery.
-  - Automatically rebuilds and deploys the site whenever code is pushed to the main branch.
-- **GitHub Actions (CI/CD)**
-  - Automates tasks like linting (ESLint), formatting (Prettier), and running any tests you add.
-  - Ensures that only clean, tested code goes live.
+These choices make development, testing, and deployment smooth and reliable:
 
-Together, these tools provide a reliable, scalable setup where every code change is tested and deployed quickly, with minimal manual work.
+- **Docker & Docker Compose**
+  • Containerize the application and database for consistent local setup.  
+  • One command brings up the entire environment—no more "it works on my machine" issues.
+
+- **Version Control (Git + GitHub)**
+  • Tracks all code changes and enables team collaboration.  
+  • Facilitates code reviews and rollbacks if needed.
+
+- **CI/CD Pipelines (e.g., GitHub Actions)**
+  • Automates tests, builds, and deployments whenever code is pushed.  
+  • Ensures fast feedback and consistent releases.
+
+- **Vercel**
+  • A cloud hosting platform optimized for Next.js.  
+  • Offers simple, scalable deployments and automatic SSL setup.
 
 ## 4. Third-Party Integrations
-While this starter kit is minimal by design, it already includes or can easily add:
 
-- **bcrypt**
-  - For secure password hashing (included as an npm dependency).
-- **NextAuth.js** (optional)
-  - A full-featured authentication library supporting email/password, OAuth, and more.
-- **Sentry or LogRocket** (optional)
-  - For real-time error tracking and performance monitoring in production.
+We leverage external services to add functionality without building from scratch:
 
-These integrations help extend the app’s capabilities without building every feature from scratch.
+- **Better Auth** (Authentication)
+  • Manages secure user login and sign-up flows.
+
+- **Charting Service** (Recharts or Tremor)
+  • Visualizes data on the dashboard (revenue, attendance trends).
+
+- **Sentry** (Error Monitoring)
+  • Captures and reports runtime errors in production.  
+  • Helps identify and fix issues before they affect staff workflows.
+
+- **Optional Analytics** (e.g., Google Analytics)
+  • Tracks overall usage patterns, pageviews, and session durations.  
+  • Supports data-driven improvements to the interface.
 
 ## 5. Security and Performance Considerations
-We’ve baked in several measures to keep users safe and the app running smoothly:
 
-Security:
-- Passwords are never stored in plain text—bcrypt hashes them with a random salt.
-- API routes can implement CSRF protection and input validation to block malicious requests.
-- Session tokens or cookies are marked secure and HttpOnly to prevent theft via JavaScript.
+We’ve put in safeguards and optimizations to keep data safe and the app snappy:
 
-Performance:
-- Server-side rendering (SSR) and static site generation (SSG) in Next.js deliver pages faster.
-- Code splitting and lazy-loaded components ensure users only download what they need.
-- Global CSS and theme files are small and cached by the browser for quick repeat visits.
+- **Authentication & RBAC**
+  • Better Auth plus custom roles (admin, staff).  
+  • Middleware protects sensitive routes (only admins access financial reports).
 
-These strategies work together to give users a fast, secure experience every time.
+- **Input Validation & Sanitization**
+  • `zod` ensures clean, valid data for all forms and API endpoints.  
+  • Prevents bad or malicious data from reaching the database.
+
+- **Rate Limiting & Throttling**
+  • Limits repeated requests on login or check-in endpoints.  
+  • Guards against brute-force and abuse.
+
+- **Performance Optimization**
+  • Next.js server components reduce client-side bundle sizes.  
+  • Tailwind CSS tree-shaking includes only the styles you use.
+
+- **Monitoring & Logging**
+  • Sentry captures errors and performance bottlenecks.  
+  • Enables proactive maintenance and quick issue resolution.
 
 ## 6. Conclusion and Overall Tech Stack Summary
-In building **codeguide-starter**, we chose technologies that:
 
-- Align with modern web standards (Next.js, React, TypeScript).
-- Provide a clear, file-based project structure for rapid onboarding.
-- Offer built-in support for server-side rendering, API routes, and static assets.
-- Emphasize security through password hashing, session management, and safe defaults.
-- Enable easy scaling and future enhancements via modular code and optional integrations.
+We’ve chosen a modern, cohesive set of technologies that align perfectly with the goals of a gym management system:
 
-This stack strikes a balance between simplicity for newcomers and flexibility for experienced teams. It accelerates development of a secure authentication flow and a polished dashboard, while leaving room to plug in databases, test suites, and advanced features as the project grows.
+- **Next.js + TypeScript** for a fast, reliable, and maintainable codebase.
+- **shadcn/ui + Tailwind CSS + next-themes** for a polished, responsive interface with dark mode support.
+- **Better Auth** and **RBAC** for robust, secure user access.
+- **PostgreSQL + Drizzle ORM** for safe, structured data management.
+- **Docker + Vercel + CI/CD** for smooth development and scalable deployment.
+
+Together, these technologies ensure that gym staff can manage memberships, track attendance, process sales, and view analytics in a secure, user-friendly environment. This stack not only accelerates development but also provides a rock-solid foundation for future growth and new features.
+
+---
+**Document Details**
+- **Project ID**: 75f83eed-0d53-4247-ae65-f3e963001172
+- **Document ID**: 3909c1a7-f415-4c15-a8d9-b10bf7f3b954
+- **Type**: custom
+- **Custom Type**: tech_stack_document
+- **Status**: completed
+- **Generated On**: 2025-10-25T13:42:21.490Z
+- **Last Updated**: N/A
